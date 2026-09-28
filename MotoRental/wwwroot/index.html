@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Прокат Мототехники</title>
+  <!-- Telegram WebApp Script -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Modern Font & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="user-profile" id="userProfile">
+        <div class="user-avatar" id="userAvatar">🏍</div>
+        <div class="user-info">
+          <span class="user-greeting" id="userGreeting">Привет, райдер!</span>
+          <span class="user-status" id="userStatus">Онлайн-бронирование</span>
+        </div>
+      </div>
+      <div class="header-badge">24/7</div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="catalog" id="tabCatalogBtn">
+        <span>🏍</span> Каталог техники
+      </button>
+      <button class="nav-tab" data-tab="my-bookings" id="tabBookingsBtn">
+        <span>📋</span> Мои заявки
+      </button>
+    </nav>
+
+    <!-- Main Content: Catalog -->
+    <main class="tab-content active" id="catalogTab">
+      <div class="section-title">
+        <h2>Доступная техника</h2>
+        <span class="badge" id="vehiclesCountBadge">3 модели</span>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" id="catalogLoader">
+        <div class="spinner"></div>
+        <p>Загрузка каталога техники...</p>
+      </div>
+
+      <!-- Vehicle Grid -->
+      <div class="vehicle-grid" id="vehicleGrid" style="display: none;"></div>
+    </main>
+
+    <!-- Main Content: My Bookings -->
+    <main class="tab-content" id="myBookingsTab">
+      <div class="section-title">
+        <h2>История бронирований</h2>
+        <button class="refresh-btn" id="refreshBookingsBtn" title="Обновить">🔄</button>
+      </div>
+
+      <div class="loading-state" id="bookingsLoader" style="display: none;">
+        <div class="spinner"></div>
+        <p>Загрузка заявок...</p>
+      </div>
+
+      <div class="bookings-list" id="bookingsList">
+        <div class="empty-state" id="emptyBookingsState">
+          <span class="empty-icon">📭</span>
+          <h3>У вас пока нет заявок</h3>
+          <p>Выберите понравившийся квадроцикл или эндуро в каталоге и забронируйте удобное время заезда.</p>
+          <button class="primary-btn" onclick="switchTab('catalog')">Перейти в каталог</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Booking Modal (Bottom Sheet) -->
+    <div class="modal-overlay" id="bookingModal">
+      <div class="bottom-sheet">
+        <div class="sheet-header">
+          <div class="sheet-drag-handle"></div>
+          <div class="sheet-title-row">
+            <h3 id="modalVehicleName">Бронирование техники</h3>
+            <button class="close-btn" id="closeModalBtn">&times;</button>
+          </div>
+        </div>
+
+        <div class="sheet-body">
+          <!-- Vehicle Summary Card -->
+          <div class="booking-summary-card">
+            <img id="modalVehicleImage" src="" alt="Техника" class="summary-thumb">
+            <div class="summary-details">
+              <h4 id="summaryVehicleName">-</h4>
+              <p class="summary-price" id="summaryVehiclePrice">- ₽ / час</p>
+            </div>
+          </div>
+
+          <!-- Date Selector -->
+          <div class="form-group">
+            <label class="form-label">1. Выберите дату заезда:</label>
+            <div class="quick-dates" id="quickDatesContainer">
+              <button type="button" class="date-chip active" data-offset="0">Сегодня</button>
+              <button type="button" class="date-chip" data-offset="1">Завтра</button>
+              <button type="button" class="date-chip" data-offset="2">Послезавтра</button>
+            </div>
+            <input type="date" id="customDateInput" class="custom-date-input">
+          </div>
+
+          <!-- Time Slots -->
+          <div class="form-group">
+            <label class="form-label">2. Выберите время слота:</label>
+            <div class="slots-container" id="slotsContainer">
+              <div class="spinner-small"></div>
+            </div>
+          </div>
+
+          <!-- Optional Comment -->
+          <div class="form-group">
+            <label class="form-label" for="bookingComment">3. Пожелания или вопросы (опционально):</label>
+            <input type="text" id="bookingComment" class="text-input" placeholder="Например: нужен шлем размера M, еду с пассажиром">
+          </div>
+
+          <!-- Total Calculation -->
+          <div class="total-bar">
+            <span>Итого к оплате:</span>
+            <strong id="modalTotalPrice">0 ₽</strong>
+          </div>
+
+          <!-- Submit Button inside modal (also syncs with Telegram MainButton) -->
+          <button type="button" class="primary-btn submit-booking-btn" id="confirmBookingBtn">
+            Забронировать слот
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Screen Modal -->
+    <div class="modal-overlay" id="successModal">
+      <div class="success-card">
+        <div class="success-icon">✅</div>
+        <h2>Заявка успешно отправлена!</h2>
+        <p id="successMessageText">Бронь передана администратору. Как только она будет подтверждена, вам придет уведомление в Telegram.</p>
+        <div class="success-details" id="successDetailsBox"></div>
+        <button class="primary-btn" id="closeSuccessBtn">Отлично</button>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toastMessage"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
