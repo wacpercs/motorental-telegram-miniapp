@@ -27,6 +27,8 @@ bld/
 
 ## Environment & Secrets
 appsettings.Production.json
+appsettings.Development.json
+appsettings.*.local.json
 *.local.json
 .env
 
