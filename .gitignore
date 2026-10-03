@@ -30,6 +30,11 @@ appsettings.Production.json
 *.local.json
 .env
 
+## SQLite Database files
+*.db
+*.db-shm
+*.db-wal
+
 ## OS Files
 Thumbs.db
 ehthumbs.db

@@ -12,11 +12,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<BotConfiguration>(
     builder.Configuration.GetSection(BotConfiguration.SectionName));
 
-// 2. База данных PostgreSQL
+// 2. База данных (Авто-определение Railway DATABASE_URL, либо локальный SQLite / PostgreSQL)
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var useSqlite = builder.Configuration.GetValue<bool>("UseSqlite", string.IsNullOrWhiteSpace(databaseUrl));
+
 builder.Services.AddDbContext<RentalDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseNpgsql(connectionString);
+    if (!string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        options.UseNpgsql(ConvertPostgresUrlToConnectionString(databaseUrl));
+    }
+    else if (useSqlite)
+    {
+        var sqliteConn = builder.Configuration.GetConnectionString("SqliteConnection") ?? "Data Source=motorental.db";
+        options.UseSqlite(sqliteConn);
+    }
+    else
+    {
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        options.UseNpgsql(connectionString);
+    }
 });
 
 // 3. Регистрация TelegramBotClient через HttpClientFactory
@@ -81,3 +96,20 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Преобразование стандартного URL подключения Railway/Heroku к формату Npgsql
+static string ConvertPostgresUrlToConnectionString(string databaseUrl)
+{
+    if (databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+        databaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        return $"Host={uri.Host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+    }
+    return databaseUrl;
+}
