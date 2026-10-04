@@ -16,6 +16,17 @@ const state = {
   currentTab: 'catalog'
 };
 
+// Автоматический обход экрана предупреждений ngrok для AJAX-запросов
+const _originalFetch = window.fetch;
+window.fetch = function (url, options = {}) {
+  const opts = { ...options };
+  opts.headers = {
+    'ngrok-skip-browser-warning': 'true',
+    ...(options.headers || {})
+  };
+  return _originalFetch(url, opts);
+};
+
 // Базовый путь к API
 const API_BASE = '/api';
 
